@@ -9,13 +9,23 @@ import { handle } from 'frog/vercel'
 //   runtime: 'edge',
 // }
 
-// Replace with your actual API key
 const NEYNAR_API_KEY = '0D6B6425-87D9-4548-95A2-36D107C12421'
+const TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e'
 
-// We'll use a mock function for token balance since we can't use ethers directly
-async function getTokenBalance(): Promise<string> {
-  // This is a mock implementation. In a real scenario, you'd call an API or use a library to get the actual balance
-  return Promise.resolve('100.0') // Mock balance
+async function getTokenBalance(address: string): Promise<string> {
+  try {
+    const response = await fetch(`https://api.etherscan.io/api?module=account&action=tokenbalance&contractaddress=${TOKEN_ADDRESS}&address=${address}&tag=latest&apikey=1P9Q31MFP8AFYU1HXJEXRHUVUV8MNIQQAQ`);
+    const data = await response.json();
+    if (data.status === '1') {
+      // Convert balance from wei to ether (assuming 18 decimals)
+      const balance = parseInt(data.result) / 1e18;
+      return balance.toFixed(4);
+    }
+    return '0';
+  } catch (error) {
+    console.error('Error fetching token balance:', error);
+    return '0';
+  }
 }
 
 async function getFarcasterProfilePicture(fid: number): Promise<string> {
@@ -49,7 +59,7 @@ app.frame('/', async (c) => {
   if (status === 'response' && frameData) {
     const { fid, address } = frameData
     if (address) {
-      balance = await getTokenBalance()
+      balance = await getTokenBalance(address)
     }
     if (fid) {
       profilePicture = await getFarcasterProfilePicture(fid)
@@ -61,7 +71,7 @@ app.frame('/', async (c) => {
       <div
         style={{
           alignItems: 'center',
-          background: 'linear-gradient(to right, #432889, #17101F)',
+          background: 'linear-gradient(to right, #4a0e8f, #280750)',
           backgroundSize: '100% 100%',
           display: 'flex',
           flexDirection: 'column',
@@ -74,8 +84,8 @@ app.frame('/', async (c) => {
       >
         <img
           src={profilePicture}
-          width={100}
-          height={100}
+          width={80}
+          height={80}
           style={{ borderRadius: '50%', marginBottom: '20px' }}
           alt="Profile"
         />
@@ -87,13 +97,11 @@ app.frame('/', async (c) => {
             letterSpacing: '-0.025em',
             lineHeight: 1.4,
             marginTop: 10,
-            padding: '0 120px',
+            padding: '0 40px',
             whiteSpace: 'pre-wrap',
           }}
         >
-          {status === 'response'
-            ? `Your token balance: ${balance}`
-            : 'Click to see your token balance'}
+          Your token balance: {balance}
         </div>
       </div>
     ),
